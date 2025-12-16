@@ -1,0 +1,53 @@
+services:
+  airtable-monitor:
+    build: .
+    container_name: airtable-monitor
+    restart: unless-stopped
+    user: "1000:1000"
+    
+    environment:
+      - AIRTABLE_API_KEY=${AIRTABLE_API_KEY}
+      - AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID}
+      - AIRTABLE_TABLE_NAME=${AIRTABLE_TABLE_NAME:-Table%201}
+      - AIRTABLE_TABLES=${AIRTABLE_TABLES:-}
+      - POLLING_INTERVAL=${POLLING_INTERVAL:-2}
+      - POLLING_ENABLED=${POLLING_ENABLED:-true}
+      - ANSIBLE_INVENTORY_PATH=/app/inventory
+      - ANSIBLE_INVENTORY_FORMAT=${ANSIBLE_INVENTORY_FORMAT:-yaml}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FILE=${LOG_FILE:-airtable_monitor.log}
+      - TELEGRAM_ENABLED=${TELEGRAM_ENABLED:-false}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - TELEGRAM_TOPIC_ID=${TELEGRAM_TOPIC_ID:-}
+      - ALERT_TACTS_TIMEOUT=${ALERT_TACTS_TIMEOUT:-5}
+    
+    volumes:
+      - ./inventory:/app/inventory
+      - ./logs:/app/logs
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    healthcheck:
+      test: ["CMD", "python", "main.py", "--test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  airtable-test:
+    build: .
+    container_name: airtable-test
+    profiles: ["test"]
+    environment:
+      - AIRTABLE_API_KEY=${AIRTABLE_API_KEY}
+      - AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID}
+      - AIRTABLE_TABLE_NAME=${AIRTABLE_TABLE_NAME:-Table%201}
+      - AIRTABLE_TABLES=${AIRTABLE_TABLES:-}
+    command: ["python", "main.py", "--test"]
+    volumes:
+      - ./inventory:/app/inventory
